@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script type="text/javascript" src="jquery.min.js"></script>
+	</head>
+	<body>
+		<h1>Datei hochladen</h1>
+		<input type="file" id="file"/>
+		<input type="button" id="upload" value="OK" />
+		<script>
+			$(function() {
+				$("#upload").click(uploadFile);
+			});
+
+			function uploadFile() {
+				let formData = new FormData();
+				let file = $("#file")[0].files[0];
+				
+				console.log(file);
+				console.log("files.length", $("#file")[0].files.length);
+				
+				formData.append("file", file);
+				/*
+				let xhr = new XMLHttpRequest();
+				let fileUpload = xhr.upload;
+				
+				fileUpload.addEventListener("progress", function(event) {
+					if (event.lengthComputable) {
+						console.log(event.loaded + "/" + event.total);
+					}
+				}, false);
+				fileUpload.addEventListener("load", function(event) {
+					console.log("finished");
+				}, false);
+				xhr.open("PUT", "https://10.0.0.1/webdav/_temp/folder/dummy.jpg", true);
+				xhr.setRequestHeader("X-Filename", "dummy.jpg");
+				xhr.setRequestHeader("Authorization", "Basic " + btoa("aaf:gwf"));
+				xhr.send(file);
+				*/
+				
+				$.ajax(
+				{
+					type: "PUT",
+					url: "https://10.0.0.1/webdav/_temp/folder/dummy.jpg",
+					contentType: false,
+					/*cache: false,*/
+					processData: false,	
+					data: formData,
+					beforeSend: function(xhr) {
+						xhr.setRequestHeader("Authorization", "Basic " + btoa("aaf:gwf"));
+					},
+					success: function (data, textStatus, jqXHR) {
+						console.info("success\n");
+						console.log(data);
+					},
+					error: function (jqXHR, textStatus, errorThrown) {
+						console.error("error");
+						console.log(jqXHR);
+					}
+				});
+			}
+		</script>
+		<hr/>
+		<h1>Ordner anlegen</h1>
+		<input type="button" id="create-folder" value="Ordner anlegen" />
+		<script>
+			$(function() {
+				$("#create-folder").click(createFolder);
+			});
+
+			function createFolder() {
+				let formData = new FormData();
+				let file = $("#file")[0].files[0];
+				formData.append("file", file);
+				
+				$.ajax(
+				{
+					type: "MKCOL",
+					url: "https://10.0.0.1/webdav/_temp/folder",/*
+					contentType: false,
+					cache: false,
+					processData: false,*/
+					beforeSend: function(xhr) {
+						xhr.setRequestHeader("Authorization", "Basic " + btoa("aaf:gwf"));
+					},
+					success: function (data, textStatus, jqXHR) {
+						console.info("success\n");
+						console.log(data);
+					},
+					error: function (jqXHR, textStatus, errorThrown) {
+						console.error("error");
+						console.log(jqXHR);
+					}
+				});
+			}
+		</script>
+		<hr/>
+		<h1>Inhalte auflisten</h1>
+		<div id="list-content-container"></div>
+		<script>
+
+			function getUrlParameterValue(name) {
+				var url = window.location.search.substring(1);
+				var parameters = url.split("&");
+
+				for (var i = 0; i < parameters.length; i++)
+				{
+					var parameter = parameters[i].split("=");
+
+					if (parameter[0] == name)
+					{
+						return parameter[1];
+					}
+				}
+
+				return null;
+			}
+
+			$(function() {
+				let webdavServer = "https://10.0.0.1";
+				let webdavShare = "/webdav/";
+				let webdavDirectory = getUrlParameterValue("webdav-directory") == null ? (webdavShare + "") : getUrlParameterValue("webdav-directory").trimLeft("/");
+				let webdavUrl = webdavServer + webdavDirectory;
+				
+			
+				$.ajax(
+				{
+					type: "PROPFIND",
+					url: webdavUrl,
+					dataType : "xml",
+					contentType: "text/xml",
+					data : "<?xml version='1.0'?>\
+					<a:propfind xmlns:a='DAV:'>\
+						<a:prop>\
+							<a:resourcetype/>\
+						</a:prop>\
+					</a:propfind>",
+					beforeSend: function(xhr) {
+						xhr.setRequestHeader("Authorization", "Basic " + btoa("aaf:gwf"));
+						xhr.setRequestHeader("Depth", 1);
+					},
+					success: function (data, textStatus, jqXHR) {
+						console.info("success\n");
+						let contentList = transformContentList(data, (webdavDirectory));
+						
+						$("#list-content-container")
+							.append(
+								$("<ul></ul>")
+							);
+						
+						$(contentList)
+							.each(function(i, element) {
+								$("#list-content-container ul")
+									.append(
+										$("<li></li>")
+											.append(
+												$("<a></a>")
+													.attr("href", "?webdav-directory=" + element.href)
+													.text(element.name + " (" + element.type + ")")
+											)
+									);
+							});
+					},
+					error: function (jqXHR, textStatus, errorThrown) {
+						console.error("error");
+						console.log(jqXHR);
+					}
+				});
+			});
+			
+			function transformContentList(contentXml, currentDirectory) {
+				console.log(contentXml);
+				let responses = $(contentXml)
+					.find("D\\:response");
+					
+				let items = [];
+				
+				responses.each(function(i, element) {
+					let item = {
+						href : $(element)
+							.find("D\\:href")
+							.text(),
+						name : $(element)
+							.find("D\\:href")
+							.text()
+							.replace(currentDirectory, "")
+					};
+					
+					if (item.name == "") {
+						item.name = ".";
+					}
+						
+					if ($(element)
+							.find("D\\:collection")
+							.length == 1) {
+						item.type = "directory";
+					}
+					else {
+						item.type = "file";
+					}
+					
+					items.push(item);
+				});
+				
+				console.log(items);
+					
+				return items;
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Test Suite</title>
+		<link rel="stylesheet" href="qunit-2.18.0.css">
+		<script type="text/javascript" src="../webdavClient.js"></script>
+	</head>
+	<body>
+		<div id="qunit"></div>
+		<div id="qunit-fixture"></div>
+		<script src="qunit-2.18.0.js"></script>
+		<script>
+			QUnit.module('webdavClient', function() {
+				QUnit.test('getContentListRequestXml', function(assert) {
+					let webdavClient = new WebdavClient();
+
+					assert.true(webdavClient.getContentListRequestXml() != null, "Is not null!");
+					assert.true((typeof webdavClient.getContentListRequestXml()) == "string", "Is of type string!");
+				});
+			});
+
+			QUnit.module('webdavClient', function() {
+				QUnit.test('setWebdavServer/getWebdavServer', function(assert) {
+					let webdavClient = new WebdavClient();
+
+					webdavClient.setWebdavServer("https://10.0.0.1");
+					assert.equal(webdavClient.getWebdavServer(), "https://10.0.0.1");
+				});
+			});
+
+			QUnit.module('webdavClient', function() {
+				QUnit.test('setWebdavShare/getWebdavShare', function(assert) {
+					let webdavClient = new WebdavClient();
+
+					webdavClient.setWebdavShare("webdav");
+					assert.equal(webdavClient.getWebdavShare(), "webdav");
+				});
+			});
+
+			QUnit.module('webdavClient', function() {
+				QUnit.test('setWebdavUser/getWebdavUser', function(assert) {
+					let webdavClient = new WebdavClient();
+
+					webdavClient.setWebdavUser("user");
+					assert.equal(webdavClient.getWebdavUser(), "user");
+				});
+			});
+
+			QUnit.module('webdavClient', function() {
+				QUnit.test('setWebdavPassword/getWebdavPassword', function(assert) {
+					let webdavClient = new WebdavClient();
+
+					webdavClient.setWebdavPassword("password");
+					assert.equal(webdavClient.getWebdavPassword(), "password");
+				});
+			});
+		</script>
+	</body>
+</html>
