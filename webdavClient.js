@@ -50,6 +50,34 @@ var WebdavClient = function () {
 			</a:propfind>";
 	};
 			
+	this.convertContentListXmlToJson = function(contentListXml) {
+			
+		let items = [];
+		let responses = $(contentListXml)
+			.find("D\\:response");
+		
+		responses.each(function(i, element) {
+			let item = {
+				href : $(element)
+					.find("D\\:href")
+					.text()
+			};
+				
+			if ($(element)
+					.find("D\\:collection")
+					.length == 1) {
+				item.type = "directory";
+			}
+			else {
+				item.type = "file";
+			}
+			
+			items.push(item);
+		});
+		
+		return items;
+	};
+			
 	this.transformContentListXmlToJson = function(contentXml, currentDirectory) {
 		let responses = $(contentXml)
 			.find("D\\:response");
