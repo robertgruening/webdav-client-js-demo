@@ -39,6 +39,10 @@ var WebdavClient = function () {
 	this.setWebdavPassword = function(webdavPassword) {
 		return this.webdavPassword = webdavPassword;
 	};
+
+	this.getWebdavUrl = function(folderPath) {
+		return this.getWebdavServer() + "/" + this.getWebdavShare() + (folderPath == undefined ? "" : ("/" + folderPath));
+	};
 	//#endregion
 
 	this.getContentListRequestXml = function() {
@@ -50,7 +54,7 @@ var WebdavClient = function () {
 			</a:propfind>";
 	};
 			
-	this.convertContentListXmlToJson = function(contentListXml) {
+	convertContentListXmlToJson = function(contentListXml) {
 			
 		let items = [];
 		let responses = $(contentListXml)
@@ -76,6 +80,38 @@ var WebdavClient = function () {
 		});
 		
 		return items;
+	};
+	
+	formatContentList = function(contentList) {
+		let currentDirectory = getCurrentDirectory(contentList);
+		
+		$(contentList).each(function(i, element) {
+			element.name = element.href.replace(currentDirectory.href, "");
+			
+			if (element.name == "") {
+				element.name = ".";
+			}
+		});
+		
+		return contentList;
+	};
+	
+	getCurrentDirectory = function(contentList) {
+		if (contentList == null ||
+			contentList.length == 0) {
+			
+			return null;
+		}
+		
+		let currentDirectory = contentList[0];
+		
+		$(contentList).each(function(i, element) {
+			if (element.href.length < currentDirectory.href.length) {
+				currentDirectory = element;
+			}
+		});
+		
+		return currentDirectory;
 	};
 			
 	this.transformContentListXmlToJson = function(contentXml, currentDirectory) {
@@ -116,7 +152,11 @@ var WebdavClient = function () {
 		return items;
 	};
 
-	this.getContentList = function() {
+	this.getContentList = function(folderPath = "", callbackSuccess, callbackError) {
+		let webdavUser = this.getWebdavUser();
+		let webdavPassword = this.getWebdavPassword();
+		let webdavUrl = this.getWebdavUrl(folderPath);
+		
 		$.ajax(
 		{
 			type: "PROPFIND",
@@ -125,34 +165,18 @@ var WebdavClient = function () {
 			contentType: "text/xml",
 			data : this.getContentListRequestXml(),
 			beforeSend: function(xhr) {
-				xhr.setRequestHeader("Authorization", "Basic " + btoa(this.getWebdavUser() + ":" + this.getWebdavPassword()));
+				xhr.setRequestHeader("Authorization", "Basic " + btoa(webdavUser + ":" + webdavPassword));
 				xhr.setRequestHeader("Depth", 1);
 			},
 			success: function (data, textStatus, jqXHR) {
-				console.info("success\n");
-				let contentList = transformContentList(data, (webdavDirectory));
-				
-				$("#list-content-container")
-					.append(
-						$("<ul></ul>")
-					);
-				
-				$(contentList)
-					.each(function(i, element) {
-						$("#list-content-container ul")
-							.append(
-								$("<li></li>")
-									.append(
-										$("<a></a>")
-											.attr("href", "?webdav-directory=" + element.href)
-											.text(element.name + " (" + element.type + ")")
-									)
-							);
-					});
+				callbackSuccess(
+					formatContentList(
+						convertContentListXmlToJson(data)
+					)
+				);
 			},
 			error: function (jqXHR, textStatus, errorThrown) {
-				console.error("error");
-				console.log(jqXHR);
+				callbackError(jqXHR, textStatus, errorThrown);
 			}
 		});
 	};

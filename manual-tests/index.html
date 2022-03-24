@@ -3,6 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<script type="text/javascript" src="jquery.min.js"></script>
+		<script type="text/javascript" src="../webdavClient.js"></script>
 	</head>
 	<body>
 		<h1>Datei hochladen</h1>
@@ -118,6 +119,23 @@
 			}
 
 			$(function() {
+				let webdavClient = new WebdavClient();
+				webdavClient.setWebdavServer("https://10.0.0.1");
+				webdavClient.setWebdavShare("webdav");
+				webdavClient.setWebdavUser("aaf");
+				webdavClient.setWebdavPassword("gwf");
+				webdavClient.getContentList(
+					"_temp",
+					function(contentListJson) {
+						console.log("success");
+						console.log(contentListJson);
+					},
+					function(jqXHR, textStatus, errorThrown) {
+						console.log("error");
+					}
+				);
+			
+			/*
 				let webdavServer = "https://10.0.0.1";
 				let webdavShare = "/webdav/";
 				let webdavDirectory = getUrlParameterValue("webdav-directory") == null ? (webdavShare + "") : getUrlParameterValue("webdav-directory").trimLeft("/");
@@ -167,6 +185,7 @@
 						console.log(jqXHR);
 					}
 				});
+				*/
 			});
 			
 			function transformContentList(contentXml, currentDirectory) {
