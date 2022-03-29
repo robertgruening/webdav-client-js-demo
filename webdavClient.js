@@ -40,8 +40,8 @@ var WebdavClient = function () {
 		return this.webdavPassword = webdavPassword;
 	};
 
-	this.getWebdavUrl = function(folderPath) {
-		return this.getWebdavServer() + "/" + this.getWebdavShare() + (folderPath == undefined ? "" : ("/" + folderPath));
+	this.getWebdavUrl = function(resourcePath) {
+		return this.getWebdavServer() + "/" + this.getWebdavShare() + (resourcePath == undefined ? "" : ("/" + resourcePath));
 	};
 	//#endregion
 
@@ -54,7 +54,7 @@ var WebdavClient = function () {
 			</a:propfind>";
 	};
 			
-	convertContentListXmlToJson = function(contentListXml) {
+	this.convertContentListXmlToJson = function(contentListXml) {
 			
 		let items = [];
 		let responses = $(contentListXml)
@@ -82,8 +82,8 @@ var WebdavClient = function () {
 		return items;
 	};
 	
-	formatContentList = function(contentList) {
-		let currentDirectory = getCurrentDirectory(contentList);
+	this.formatContentList = function(contentList) {
+		let currentDirectory = this.getCurrentDirectory(contentList);
 		
 		$(contentList).each(function(i, element) {
 			element.name = element.href.replace(currentDirectory.href, "");
@@ -96,7 +96,7 @@ var WebdavClient = function () {
 		return contentList;
 	};
 	
-	getCurrentDirectory = function(contentList) {
+	this.getCurrentDirectory = function(contentList) {
 		if (contentList == null ||
 			contentList.length == 0) {
 			
@@ -153,27 +153,60 @@ var WebdavClient = function () {
 	};
 
 	this.getContentList = function(folderPath = "", callbackSuccess, callbackError) {
-		let webdavUser = this.getWebdavUser();
-		let webdavPassword = this.getWebdavPassword();
-		let webdavUrl = this.getWebdavUrl(folderPath);
-		
 		$.ajax(
 		{
 			type: "PROPFIND",
-			url: webdavUrl,
+			url: this.getWebdavUrl(folderPath),
 			dataType : "xml",
 			contentType: "text/xml",
 			data : this.getContentListRequestXml(),
+			context: this,
 			beforeSend: function(xhr) {
-				xhr.setRequestHeader("Authorization", "Basic " + btoa(webdavUser + ":" + webdavPassword));
+				xhr.setRequestHeader("Authorization", "Basic " + btoa(this.getWebdavUser() + ":" + this.getWebdavPassword()));
 				xhr.setRequestHeader("Depth", 1);
 			},
 			success: function (data, textStatus, jqXHR) {
 				callbackSuccess(
-					formatContentList(
-						convertContentListXmlToJson(data)
+					this.formatContentList(
+						this.convertContentListXmlToJson(data)
 					)
 				);
+			},
+			error: function (jqXHR, textStatus, errorThrown) {
+				callbackError(jqXHR, textStatus, errorThrown);
+			}
+		});
+	};
+
+	this.createFolder = function(folderPath, callbackSuccess, callbackError) {
+		$.ajax(
+		{
+			type: "MKCOL",
+			url: this.getWebdavUrl(folderPath),
+			context: this,
+			beforeSend: function(xhr) {
+				xhr.setRequestHeader("Authorization", "Basic " + btoa(this.getWebdavUser() + ":" + this.getWebdavPassword()));
+			},
+			success: function (data, textStatus, jqXHR) {
+				callbackSuccess(data, textStatus, jqXHR);
+			},
+			error: function (jqXHR, textStatus, errorThrown) {
+				callbackError(jqXHR, textStatus, errorThrown);
+			}
+		});
+	};
+
+	this.getFile = function(filePath, callbackSuccess, callbackError) {
+		$.ajax(
+		{
+			type: "GET",
+			url: this.getWebdavUrl(filePath),
+			context: this,
+			beforeSend: function(xhr) {
+				xhr.setRequestHeader("Authorization", "Basic " + btoa(this.getWebdavUser() + ":" + this.getWebdavPassword()));
+			},
+			success: function (data, textStatus, jqXHR) {
+				callbackSuccess(data, textStatus, jqXHR);
 			},
 			error: function (jqXHR, textStatus, errorThrown) {
 				callbackError(jqXHR, textStatus, errorThrown);
